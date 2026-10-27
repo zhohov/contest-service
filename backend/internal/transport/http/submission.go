@@ -58,10 +58,34 @@ func (h *HTTPHandler) GetSubmissionByID(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(mapGetSubmissionByIdOutputToJson(out))
 }
 
-// func (h *HTTPHandler) GetSubmissionByUserID(w http.ResponseWriter, r *http.Request) {
+func (h *HTTPHandler) GetSubmissionsByUserID(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value(userContextKey).(*domain.AuthUser)
 
-// }
+	out, err := h.uc.GetSubmissionsByUserID(r.Context(), mapGetSubmissionsByUserIdToInput(user.ID))
+	if err != nil {
+		http.Error(w, "submissions not found", http.StatusNotFound)
+		return
+	}
 
-// func (h *HTTPHandler) GetSubmissionByContestID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(mapGetSubmissionsByUserIdOutputToJson(out))
+}
 
-// }
+func (h *HTTPHandler) GetSubmissionsByContestID(w http.ResponseWriter, r *http.Request) {
+	contestID, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "invalid contest id", http.StatusBadRequest)
+		return
+	}
+
+	out, err := h.uc.GetSubmissionsByContestID(r.Context(), mapGetSubmissionsByContestIdToInput(contestID))
+	if err != nil {
+		http.Error(w, "submissions not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(mapGetSubmissionsByContestIdOutputToJson(out))
+}

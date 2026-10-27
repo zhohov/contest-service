@@ -4,6 +4,7 @@ import "fmt"
 
 type Article struct {
 	ID      int
+	Author  User
 	Title   string
 	Slug    string
 	Content string

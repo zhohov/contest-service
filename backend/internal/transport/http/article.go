@@ -3,6 +3,8 @@ package http
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/zhohov/contest-service/backend/internal/domain"
 )
 
 func (h *HTTPHandler) CreateArticle(w http.ResponseWriter, r *http.Request) {
@@ -12,7 +14,12 @@ func (h *HTTPHandler) CreateArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	out, err := h.uc.CreateArticle(mapCreateArticleToInput(req))
+	user := r.Context().Value(userContextKey).(*domain.AuthUser)
+
+	input := mapCreateArticleToInput(req)
+	input.AuthorID = user.ID
+
+	out, err := h.uc.CreateArticle(r.Context(), input)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -24,7 +31,7 @@ func (h *HTTPHandler) CreateArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTPHandler) GetArticles(w http.ResponseWriter, r *http.Request) {
-	out, err := h.uc.GetArticles()
+	out, err := h.uc.GetArticles(r.Context())
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return

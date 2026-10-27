@@ -4,7 +4,13 @@ import "github.com/zhohov/contest-service/backend/internal/domain"
 
 func mapArticleToDTO(article *domain.Article) ArticleDTO {
 	return ArticleDTO{
-		ID:      article.ID,
+		ID: article.ID,
+		Author: UserDTO{
+			ID:       article.Author.ID,
+			Username: article.Author.Username,
+			Email:    article.Author.Email,
+			Role:     article.Author.Role,
+		},
 		Title:   article.Title,
 		Slug:    article.Slug,
 		Content: article.Content,
@@ -52,11 +58,24 @@ func mapProblemsToDTOs(problems []domain.Problem) []ProblemDTO {
 
 func mapSubmissionToDTO(submission *domain.Submission) SubmissionDTO {
 	return SubmissionDTO{
-		ID:     submission.ID,
+		ID:        submission.ID,
+		ProblemID: submission.Problem.ID,
+		User: SubmissionUserDTO{
+			ID:       submission.User.ID,
+			Username: submission.User.Username,
+		},
 		Code:   submission.Code,
 		Status: string(submission.Status),
 		Result: string(submission.Result),
 	}
+}
+
+func mapSubmissionsToDTOs(submissions []domain.Submission) []SubmissionDTO {
+	submissionDTOs := make([]SubmissionDTO, 0, len(submissions))
+	for _, submission := range submissions {
+		submissionDTOs = append(submissionDTOs, mapSubmissionToDTO(&submission))
+	}
+	return submissionDTOs
 }
 
 func mapContestToDTO(contest *domain.Contest) ContestDTO {
@@ -70,4 +89,12 @@ func mapContestToDTO(contest *domain.Contest) ContestDTO {
 		EndsAt:      contest.EndsAt,
 		Problems:    mapProblemsToDTOs(contest.Problems),
 	}
+}
+
+func mapContestsToDTOs(contests []domain.Contest) []ContestDTO {
+	contestDTOs := make([]ContestDTO, 0, len(contests))
+	for _, contest := range contests {
+		contestDTOs = append(contestDTOs, mapContestToDTO(&contest))
+	}
+	return contestDTOs
 }

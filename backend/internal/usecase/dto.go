@@ -8,15 +8,17 @@ import (
 
 type ArticleDTO struct {
 	ID      int
+	Author  UserDTO
 	Title   string
 	Slug    string
 	Content string
 }
 
 type CreateArticleInput struct {
-	Title   string
-	Slug    string
-	Content string
+	AuthorID int
+	Title    string
+	Slug     string
+	Content  string
 }
 
 type CreateArticleOutput struct {
@@ -113,15 +115,38 @@ type GetSubmissionByIdInput struct {
 	ID int
 }
 
+type GetSubmissionsByUserIdInput struct {
+	UserID int
+}
+
+type GetSubmissionsByContestIdInput struct {
+	ContestID int
+}
+
+type SubmissionUserDTO struct {
+	ID       int
+	Username string
+}
+
 type SubmissionDTO struct {
-	ID     int
-	Code   string
-	Status string
-	Result string
+	ID        int
+	ProblemID int
+	User      SubmissionUserDTO
+	Code      string
+	Status    string
+	Result    string
 }
 
 type GetSubmissionByIdOutput struct {
 	Submission SubmissionDTO
+}
+
+type GetSubmissionsByUserIdOutput struct {
+	Submissions []SubmissionDTO
+}
+
+type GetSubmissionsByContestIdOutput struct {
+	Submissions []SubmissionDTO
 }
 
 type CreateContestInput struct {
@@ -160,6 +185,38 @@ type ContestDTO struct {
 
 type CreateContestOutput struct {
 	Contest ContestDTO
+}
+
+type UpdateContestInput struct {
+	ID          int
+	CreatorID   int
+	Title       string
+	Slug        string
+	Description string
+	StartsAt    time.Time
+	EndsAt      time.Time
+	Problems    []UpdateContestProblemInput
+}
+
+type UpdateContestProblemInput struct {
+	ID         int
+	Title      string
+	Slug       string
+	Difficulty string
+	Content    string
+	TestCases  []CreateContestTestCaseInput
+}
+
+type UpdateContestOutput struct {
+	Contest ContestDTO
+}
+
+type GetContestsByUserIdInput struct {
+	UserID int
+}
+
+type GetContestsByUserIdOutput struct {
+	Contests []ContestDTO
 }
 
 type GetContestBySlugInput struct {

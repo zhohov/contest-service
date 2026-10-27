@@ -15,7 +15,6 @@ import (
 
 	"github.com/zhohov/contest-service/backend/config"
 	"github.com/zhohov/contest-service/backend/internal/domain"
-	repositoryInMemory "github.com/zhohov/contest-service/backend/internal/repository/in_memory"
 	"github.com/zhohov/contest-service/backend/internal/usecase"
 )
 
@@ -112,11 +111,11 @@ func Run(ctx context.Context, config *config.Config) error {
 	defer db.Close()
 
 	problemRepo := repository.NewProblemRepository(db)
+	articleRepo := repository.NewArticleRepository(db)
 	userRepo := repository.NewUserRepository(db)
 	submissionRepo := repository.NewSubmissionRepository(db)
 	contestRepo := repository.NewContestRepository(db)
 
-	articleRepo := repositoryInMemory.NewArticleInMemoryRepo(NewArticleStorage())
 	// problemRepo := repositoryInMemory.NewProblemInMemoryRepo(NewProblemStorage())
 	// userRepo := repositoryInMemory.NewUserInMemoryRepo(NewUserStorage())
 	jwt := infrastructure.NewJwtService([]byte("example"), time.Hour*24)

@@ -7,9 +7,9 @@ import (
 )
 
 type ArticleRepository interface {
-	CreateArticle(article *domain.Article) (*domain.Article, error)
-	GetArticles() ([]domain.Article, error)
-	GetArticleById(id int) (*domain.Article, error)
+	CreateArticle(ctx context.Context, article *domain.Article) (*domain.Article, error)
+	GetArticles(ctx context.Context) ([]domain.Article, error)
+	GetArticleById(ctx context.Context, id int) (*domain.Article, error)
 }
 
 type ProblemRepository interface {
@@ -29,13 +29,17 @@ type UserRepository interface {
 type SubmissionRepository interface {
 	CreateSubmission(ctx context.Context, submission *domain.Submission) (*domain.Submission, error)
 	GetSubmissionByID(ctx context.Context, id int) (*domain.Submission, error)
+	GetSubmissionsByUserID(ctx context.Context, userID int) ([]domain.Submission, error)
+	GetSubmissionsByContestID(ctx context.Context, contestID int) ([]domain.Submission, error)
 	UpdateSubmission(ctx context.Context, submission *domain.Submission) error
-	// GetSubmissionsByContestID(ctx context.Context) ([]domain.Submission, error)
 }
 
 type ContestRepository interface {
 	CreateContest(ctx context.Context, contest *domain.Contest) (*domain.Contest, error)
+	GetContestByID(ctx context.Context, id int) (*domain.Contest, error)
+	GetContestsByUserID(ctx context.Context, userID int) ([]domain.Contest, error)
 	GetContestBySlug(ctx context.Context, slug string) (*domain.Contest, error)
+	UpdateContest(ctx context.Context, contest *domain.Contest) error
 }
 
 type JwtService interface {

@@ -37,9 +37,11 @@ func (r *SubmissionRepository) CreateSubmission(ctx context.Context, submission 
 
 func (r *SubmissionRepository) GetSubmissionByID(ctx context.Context, id int) (*domain.Submission, error) {
 	query := `
-		SELECT id, problem_id, user_id, code, status, result
-		FROM submissions
-		WHERE id = $1;
+		SELECT s.id, s.problem_id, s.user_id, u.username, s.code, s.status, s.result
+		FROM submissions s
+		JOIN users u
+			ON u.id = s.user_id
+		WHERE s.id = $1;
 	`
 
 	row := r.db.QueryRowContext(ctx, query, id)
@@ -54,10 +56,12 @@ func (r *SubmissionRepository) GetSubmissionByID(ctx context.Context, id int) (*
 
 func (r *SubmissionRepository) GetSubmissionsByUserID(ctx context.Context, userID int) ([]domain.Submission, error) {
 	query := `
-		SELECT id, problem_id, user_id, code, status, result
-		FROM submissions
-		WHERE user_id = $1
-		ORDER BY created_at DESC;
+		SELECT s.id, s.problem_id, s.user_id, u.username, s.code, s.status, s.result
+		FROM submissions s
+		JOIN users u
+			ON u.id = s.user_id
+		WHERE s.user_id = $1
+		ORDER BY s.created_at DESC;
 	`
 
 	rows, err := r.db.QueryContext(ctx, query, userID)
@@ -74,6 +78,7 @@ func (r *SubmissionRepository) GetSubmissionsByUserID(ctx context.Context, userI
 			&submission.ID,
 			&submission.Problem.ID,
 			&submission.User.ID,
+			&submission.User.Username,
 			&submission.Code,
 			&submission.Status,
 			&submission.Result,
@@ -94,10 +99,12 @@ func (r *SubmissionRepository) GetSubmissionsByUserID(ctx context.Context, userI
 
 func (r *SubmissionRepository) GetSubmissionsByContestID(ctx context.Context, contestID int) ([]domain.Submission, error) {
 	query := `
-		SELECT s.id, s.problem_id, s.user_id, s.code, s.status, s.result
+		SELECT s.id, s.problem_id, s.user_id, u.username, s.code, s.status, s.result
 		FROM submissions s
 		JOIN contest_problems cp
 			ON cp.problem_id = s.problem_id
+		JOIN users u
+			ON u.id = s.user_id
 		WHERE cp.contest_id = $1
 		ORDER BY s.created_at DESC;
 	`
@@ -116,6 +123,7 @@ func (r *SubmissionRepository) GetSubmissionsByContestID(ctx context.Context, co
 			&submission.ID,
 			&submission.Problem.ID,
 			&submission.User.ID,
+			&submission.User.Username,
 			&submission.Code,
 			&submission.Status,
 			&submission.Result,
@@ -169,6 +177,7 @@ func (r *SubmissionRepository) scanSubmission(row *sql.Row) (*domain.Submission,
 		&submission.ID,
 		&submission.Problem.ID,
 		&submission.User.ID,
+		&submission.User.Username,
 		&submission.Code,
 		&submission.Status,
 		&submission.Result,

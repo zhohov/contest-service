@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"errors"
-	"log"
 
 	"github.com/zhohov/contest-service/backend/internal/domain"
 )
@@ -35,7 +34,6 @@ func (uc *UseCase) Register(ctx context.Context, in RegisterInput) (*RegisterOut
 	if err != nil {
 		return nil, err
 	}
-	log.Println(passwordHash)
 
 	user := domain.NewUser(in.Username, in.Email, domain.RoleUser, passwordHash)
 	createdUser, err := uc.users.CreateUser(ctx, user)

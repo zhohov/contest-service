@@ -165,6 +165,48 @@ func (r *ContestRepository) GetContests(ctx context.Context) ([]domain.Contest, 
 	return contests, nil
 }
 
+func (r *ContestRepository) GetContestsByUserID(ctx context.Context, userID int) ([]domain.Contest, error) {
+	query := `
+		SELECT id, creator_id, title, slug, description, starts_at, ends_at, created_at
+		FROM contests
+		WHERE creator_id = $1
+		ORDER BY created_at DESC;
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("repo get contests by user id: %w", err)
+	}
+	defer rows.Close()
+
+	contests := []domain.Contest{}
+	for rows.Next() {
+		contest := domain.Contest{}
+
+		err := rows.Scan(
+			&contest.ID,
+			&contest.Creator.ID,
+			&contest.Title,
+			&contest.Slug,
+			&contest.Description,
+			&contest.StartsAt,
+			&contest.EndsAt,
+			&contest.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scan contest: %w", err)
+		}
+
+		contests = append(contests, contest)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("contest rows error: %w", err)
+	}
+
+	return contests, nil
+}
+
 func (r *ContestRepository) GetContestBySlug(ctx context.Context, slug string) (*domain.Contest, error) {
 	query := `
 		SELECT id, creator_id, title, slug, description, starts_at, ends_at, created_at
@@ -226,12 +268,59 @@ func (r *ContestRepository) getContestProblems(ctx context.Context, contestID in
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("contest problems rows error: %w", err)
 	}
+	rows.Close()
+
+	for i := range problems {
+		testCases, err := r.getContestProblemTestCases(ctx, problems[i].ID)
+		if err != nil {
+			return nil, fmt.Errorf("get contest problem test cases: %w", err)
+		}
+
+		problems[i].TestCases = testCases
+	}
 
 	return problems, nil
 }
 
-func (r *ContestRepository) UpdateContest(ctx context.Context, contest *domain.Contest) error {
+func (r *ContestRepository) getContestProblemTestCases(ctx context.Context, problemID int) ([]domain.TestCase, error) {
 	query := `
+		SELECT id, input, expected
+		FROM test_cases
+		WHERE problem_id = $1
+		ORDER BY id;
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, problemID)
+	if err != nil {
+		return nil, fmt.Errorf("get contest problem test cases: %w", err)
+	}
+	defer rows.Close()
+
+	testCases := []domain.TestCase{}
+	for rows.Next() {
+		testCase := domain.TestCase{}
+		if err := rows.Scan(&testCase.ID, &testCase.Input, &testCase.Expected); err != nil {
+			return nil, fmt.Errorf("scan contest problem test case: %w", err)
+		}
+
+		testCases = append(testCases, testCase)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("contest problem test cases rows error: %w", err)
+	}
+
+	return testCases, nil
+}
+
+func (r *ContestRepository) UpdateContest(ctx context.Context, contest *domain.Contest) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("update contest repo start tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	queryContest := `
 		UPDATE contests
 		SET
 			creator_id = $1,
@@ -243,9 +332,9 @@ func (r *ContestRepository) UpdateContest(ctx context.Context, contest *domain.C
 		WHERE id = $7;
 	`
 
-	_, err := r.db.ExecContext(
+	result, err := tx.ExecContext(
 		ctx,
-		query,
+		queryContest,
 		contest.Creator.ID,
 		contest.Title,
 		contest.Slug,
@@ -256,6 +345,143 @@ func (r *ContestRepository) UpdateContest(ctx context.Context, contest *domain.C
 	)
 	if err != nil {
 		return fmt.Errorf("update contest from repo: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("update contest rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("update contest from repo: contest not found")
+	}
+
+	queryCurrentProblems := `
+		SELECT problem_id
+		FROM contest_problems
+		WHERE contest_id = $1
+		FOR UPDATE;
+	`
+
+	rows, err := tx.QueryContext(ctx, queryCurrentProblems, contest.ID)
+	if err != nil {
+		return fmt.Errorf("get contest problems for update: %w", err)
+	}
+
+	currentProblemIDs := make(map[int]struct{})
+	for rows.Next() {
+		var problemID int
+		if err := rows.Scan(&problemID); err != nil {
+			rows.Close()
+			return fmt.Errorf("scan contest problem for update: %w", err)
+		}
+		currentProblemIDs[problemID] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return fmt.Errorf("contest problems for update rows error: %w", err)
+	}
+	rows.Close()
+
+	queryUpdateProblem := `
+		UPDATE problems
+		SET title = $1, slug = $2, difficulty = $3, content = $4
+		WHERE id = $5;
+	`
+	queryCreateProblem := `
+		INSERT INTO problems (title, slug, difficulty, content)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id;
+	`
+	queryCreateRelation := `
+		INSERT INTO contest_problems (contest_id, problem_id)
+		VALUES ($1, $2);
+	`
+	queryDeleteTestCases := `
+		DELETE FROM test_cases
+		WHERE problem_id = $1;
+	`
+	queryCreateTestCase := `
+		INSERT INTO test_cases (problem_id, input, expected)
+		VALUES ($1, $2, $3);
+	`
+
+	keptProblemIDs := make(map[int]struct{}, len(contest.Problems))
+	for i := range contest.Problems {
+		problem := &contest.Problems[i]
+
+		if problem.ID == 0 {
+			err := tx.QueryRowContext(
+				ctx,
+				queryCreateProblem,
+				problem.Title,
+				problem.Slug,
+				problem.Difficulty,
+				problem.Content,
+			).Scan(&problem.ID)
+			if err != nil {
+				return fmt.Errorf("create contest problem on update: %w", err)
+			}
+
+			if _, err := tx.ExecContext(ctx, queryCreateRelation, contest.ID, problem.ID); err != nil {
+				return fmt.Errorf("create contest problem relation on update: %w", err)
+			}
+		} else {
+			if _, ok := currentProblemIDs[problem.ID]; !ok {
+				return fmt.Errorf("update contest problem: problem %d does not belong to contest", problem.ID)
+			}
+
+			if _, exists := keptProblemIDs[problem.ID]; exists {
+				return fmt.Errorf("update contest problem: duplicate problem id %d", problem.ID)
+			}
+
+			if _, err := tx.ExecContext(
+				ctx,
+				queryUpdateProblem,
+				problem.Title,
+				problem.Slug,
+				problem.Difficulty,
+				problem.Content,
+				problem.ID,
+			); err != nil {
+				return fmt.Errorf("update contest problem: %w", err)
+			}
+
+			if _, err := tx.ExecContext(ctx, queryDeleteTestCases, problem.ID); err != nil {
+				return fmt.Errorf("delete contest problem test cases on update: %w", err)
+			}
+		}
+
+		for _, testCase := range problem.TestCases {
+			if _, err := tx.ExecContext(
+				ctx,
+				queryCreateTestCase,
+				problem.ID,
+				testCase.Input,
+				testCase.Expected,
+			); err != nil {
+				return fmt.Errorf("create contest problem test case on update: %w", err)
+			}
+		}
+
+		keptProblemIDs[problem.ID] = struct{}{}
+	}
+
+	queryDeleteRelation := `
+		DELETE FROM contest_problems
+		WHERE contest_id = $1 AND problem_id = $2;
+	`
+	for problemID := range currentProblemIDs {
+		if _, ok := keptProblemIDs[problemID]; ok {
+			continue
+		}
+
+		if _, err := tx.ExecContext(ctx, queryDeleteRelation, contest.ID, problemID); err != nil {
+			return fmt.Errorf("delete contest problem relation on update: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("update contest repo commit tx: %w", err)
 	}
 
 	return nil

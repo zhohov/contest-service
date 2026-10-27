@@ -64,7 +64,12 @@ func (r *ProblemRepository) CreateProblem(ctx context.Context, problem *domain.P
 func (r *ProblemRepository) GetProblems(ctx context.Context) ([]domain.Problem, error) {
 	query := `
 		SELECT id, title, slug, difficulty, content
-		FROM problems;
+		FROM problems p
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM contest_problems cp
+			WHERE cp.problem_id = p.id
+		);
 	`
 
 	rows, err := r.db.QueryContext(ctx, query)

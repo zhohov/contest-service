@@ -25,8 +25,8 @@ import (
 // }
 
 type UseCase interface {
-	CreateArticle(in usecase.CreateArticleInput) (*usecase.CreateArticleOutput, error)
-	GetArticles() (*usecase.GetArticlesOutput, error)
+	CreateArticle(ctx context.Context, in usecase.CreateArticleInput) (*usecase.CreateArticleOutput, error)
+	GetArticles(ctx context.Context) (*usecase.GetArticlesOutput, error)
 
 	CreateProblem(ctx context.Context, in usecase.CreateProblemInput) (*usecase.CreateProblemOutput, error)
 	GetProblems(ctx context.Context) (*usecase.GetProblemsOutput, error)
@@ -37,8 +37,12 @@ type UseCase interface {
 
 	CreateSubmission(ctx context.Context, in usecase.CreateSubmissionInput) (*usecase.CreateSubmissionOutput, error)
 	GetSubmissionByID(ctx context.Context, in usecase.GetSubmissionByIdInput) (*usecase.GetSubmissionByIdOutput, error)
+	GetSubmissionsByUserID(ctx context.Context, in usecase.GetSubmissionsByUserIdInput) (*usecase.GetSubmissionsByUserIdOutput, error)
+	GetSubmissionsByContestID(ctx context.Context, in usecase.GetSubmissionsByContestIdInput) (*usecase.GetSubmissionsByContestIdOutput, error)
 
 	CreateContest(ctx context.Context, in usecase.CreateContestInput) (*usecase.CreateContestOutput, error)
+	UpdateContest(ctx context.Context, in usecase.UpdateContestInput) (*usecase.UpdateContestOutput, error)
+	GetContestsByUserID(ctx context.Context, in usecase.GetContestsByUserIdInput) (*usecase.GetContestsByUserIdOutput, error)
 	GetContestBySlug(ctx context.Context, in usecase.GetContestBySlugInput) (*usecase.GetContestBySlugOutput, error)
 }
 

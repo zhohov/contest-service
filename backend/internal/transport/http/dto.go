@@ -36,6 +36,7 @@ type ProblemJson struct {
 }
 
 type CreateProblemRequestJson struct {
+	ID         int            `json:"id,omitempty"`
 	Title      string         `json:"title"`
 	Slug       string         `json:"slug"`
 	Difficulty string         `json:"difficulty"`
@@ -44,10 +45,17 @@ type CreateProblemRequestJson struct {
 }
 
 type SubmissionJson struct {
-	ID     int    `json:"id"`
-	Code   string `json:"code"`
-	Status string `json:"status"`
-	Result string `json:"result"`
+	ID        int                `json:"id"`
+	ProblemID int                `json:"problem_id"`
+	User      SubmissionUserJson `json:"user"`
+	Code      string             `json:"code"`
+	Status    string             `json:"status"`
+	Result    string             `json:"result"`
+}
+
+type SubmissionUserJson struct {
+	ID       int    `json:"id"`
+	Username string `json:"username"`
 }
 
 type CreateProblemResponseJson struct {
@@ -86,6 +94,10 @@ type CreateSubmissionResponseJson struct {
 	SubmissionID int `json:"submission_id"`
 }
 
+type GetSubmissionsJson struct {
+	Submissions []SubmissionJson `json:"submissions"`
+}
+
 // type GetSubmissionByIdResponseJson struct {
 // 	Submission SubmissionJson
 // }
@@ -103,6 +115,12 @@ type CreateContestResponseJson struct {
 	Contest ContestJson `json:"contest"`
 }
 
+type UpdateContestRequestJson = CreateContestRequestJson
+
+type UpdateContestResponseJson struct {
+	Contest ContestJson `json:"contest"`
+}
+
 type ContestJson struct {
 	ID          int           `json:"id"`
 	Title       string        `json:"title"`
@@ -112,6 +130,10 @@ type ContestJson struct {
 	StartsAt    string        `json:"starts_at"`
 	EndsAt      string        `json:"ends_at"`
 	Problems    []ProblemJson `json:"problems"`
+}
+
+type GetContestsJson struct {
+	Contests []ContestJson `json:"contests"`
 }
 
 type GetContestBySlugResponseJson struct {

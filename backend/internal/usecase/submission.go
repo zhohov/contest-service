@@ -76,6 +76,28 @@ func (uc *UseCase) GetSubmissionByID(ctx context.Context, in GetSubmissionByIdIn
 	}, nil
 }
 
+func (uc *UseCase) GetSubmissionsByUserID(ctx context.Context, in GetSubmissionsByUserIdInput) (*GetSubmissionsByUserIdOutput, error) {
+	submissions, err := uc.submissions.GetSubmissionsByUserID(ctx, in.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("get submissions by user id usecase: %w", err)
+	}
+
+	return &GetSubmissionsByUserIdOutput{
+		Submissions: mapSubmissionsToDTOs(submissions),
+	}, nil
+}
+
+func (uc *UseCase) GetSubmissionsByContestID(ctx context.Context, in GetSubmissionsByContestIdInput) (*GetSubmissionsByContestIdOutput, error) {
+	submissions, err := uc.submissions.GetSubmissionsByContestID(ctx, in.ContestID)
+	if err != nil {
+		return nil, fmt.Errorf("get submissions by contest id usecase: %w", err)
+	}
+
+	return &GetSubmissionsByContestIdOutput{
+		Submissions: mapSubmissionsToDTOs(submissions),
+	}, nil
+}
+
 func (uc *UseCase) UpdateSubmission(ctx context.Context, in UpdateSubmissionInput) (*UpdateSubmissionOutput, error) {
 	submission, err := uc.submissions.GetSubmissionByID(ctx, in.SubmissionID)
 	if err != nil {
