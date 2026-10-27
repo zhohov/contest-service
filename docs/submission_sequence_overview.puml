@@ -1,0 +1,57 @@
+@startuml SubmissionSequenceOverview
+
+skinparam monochrome true
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Пользователь" as user
+participant "Клиентская часть" as client
+participant "Backend" as backend
+queue "Брокер сообщений" as broker
+participant "Judge service" as judge
+
+user -> client: Нажимает "Отправить решение"
+activate client
+
+client -> backend: POST /submissions\nкод + id задачи
+activate backend
+
+backend -> backend: Проверяет пользователя\nи регистрирует отправку
+
+backend -> broker: Публикует задачу на проверку\nsubmissions.created
+activate broker
+
+backend --> client: submission_id\nстатус: pending
+deactivate backend
+
+client --> user: Показывает, что решение принято\nи ожидает проверки
+deactivate client
+
+broker -> judge: Передает задачу на проверку
+deactivate broker
+activate judge
+
+judge -> judge: Запускает код на тестах\nи определяет результат
+
+judge -> broker: Публикует результат проверки\nsubmissions.completed
+activate broker
+deactivate judge
+
+broker -> backend: Доставляет результат проверки
+deactivate broker
+activate backend
+
+backend -> backend: Обновляет статус решения
+deactivate backend
+
+client -> backend: Запрашивает статус решения
+activate client
+activate backend
+
+backend --> client: done + result
+deactivate backend
+
+client --> user: Показывает итог проверки
+deactivate client
+
+@enduml

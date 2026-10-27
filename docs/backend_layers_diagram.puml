@@ -1,0 +1,150 @@
+@startuml BackendLayersDiagram
+skinparam monochrome true
+
+scale max 1100 width
+top to bottom direction
+skinparam classAttributeIconSize 0
+skinparam nodesep 12
+skinparam ranksep 15
+skinparam linetype ortho
+hide members
+
+skinparam class {
+  BackgroundColor<<domain>> #FAFAFA
+  BorderColor<<domain>> #6F6F6F
+  BackgroundColor<<usecase>> #E6E6E6
+  BorderColor<<usecase>> #5F5F5F
+  BackgroundColor<<transport>> #D0D0D0
+  BorderColor<<transport>> #4F4F4F
+  BackgroundColor<<repository>> #B8B8B8
+  BorderColor<<repository>> #3F3F3F
+  BackgroundColor<<infrastructure>> #9E9E9E
+  BorderColor<<infrastructure>> #303030
+}
+
+' Domain
+class User <<domain>>
+class AuthUser <<domain>>
+class Article <<domain>>
+class Problem <<domain>>
+class TestCase <<domain>>
+class Contest <<domain>>
+class Submission <<domain>>
+
+' UseCase / Application
+class UseCase <<usecase>>
+interface ArticleRepository <<usecase>>
+interface ProblemRepository <<usecase>>
+interface UserRepository <<usecase>>
+interface SubmissionRepository <<usecase>>
+interface ContestRepository <<usecase>>
+interface JwtService <<usecase>>
+interface PasswordHasher <<usecase>>
+interface MessageBroker <<usecase>>
+
+' Transport
+class HTTPHandler <<transport>>
+class Consumer <<transport>>
+interface HttpUseCase <<transport>>
+interface HttpJwtService <<transport>>
+interface EventUseCase <<transport>>
+interface EventMessageBroker <<transport>>
+
+' Repository
+class ArticleRepositoryImpl <<repository>>
+class ProblemRepositoryImpl <<repository>>
+class UserRepositoryImpl <<repository>>
+class SubmissionRepositoryImpl <<repository>>
+class ContestRepositoryImpl <<repository>>
+
+' Infrastructure
+class JwtServiceImpl <<infrastructure>>
+class Hasher <<infrastructure>>
+class RedisBroker <<infrastructure>>
+
+' Layer order
+User -[hidden]down-> UseCase
+UseCase -[hidden]down-> HTTPHandler
+UseCase -[hidden]down-> ArticleRepositoryImpl
+
+' Compact portrait layout
+User -[hidden]down-> AuthUser
+AuthUser -[hidden]down-> Article
+Article -[hidden]down-> Problem
+Problem -[hidden]down-> TestCase
+TestCase -[hidden]down-> Contest
+Contest -[hidden]down-> Submission
+
+UseCase -[hidden]down-> ArticleRepository
+ArticleRepository -[hidden]down-> ProblemRepository
+ProblemRepository -[hidden]down-> UserRepository
+UserRepository -[hidden]down-> SubmissionRepository
+SubmissionRepository -[hidden]down-> ContestRepository
+ContestRepository -[hidden]down-> JwtService
+JwtService -[hidden]down-> PasswordHasher
+PasswordHasher -[hidden]down-> MessageBroker
+
+HTTPHandler -[hidden]down-> Consumer
+Consumer -[hidden]down-> HttpUseCase
+HttpUseCase -[hidden]down-> HttpJwtService
+HttpJwtService -[hidden]down-> EventUseCase
+EventUseCase -[hidden]down-> EventMessageBroker
+
+ArticleRepositoryImpl -[hidden]down-> ProblemRepositoryImpl
+ProblemRepositoryImpl -[hidden]down-> UserRepositoryImpl
+UserRepositoryImpl -[hidden]down-> SubmissionRepositoryImpl
+SubmissionRepositoryImpl -[hidden]down-> ContestRepositoryImpl
+ContestRepositoryImpl -[hidden]down-> JwtServiceImpl
+JwtServiceImpl -[hidden]down-> Hasher
+Hasher -[hidden]down-> RedisBroker
+
+' Main dependencies
+UseCase --> User
+UseCase --> Problem
+UseCase --> Contest
+UseCase --> Submission
+
+UseCase --> ArticleRepository
+UseCase --> ProblemRepository
+UseCase --> UserRepository
+UseCase --> SubmissionRepository
+UseCase --> ContestRepository
+UseCase --> JwtService
+UseCase --> PasswordHasher
+UseCase --> MessageBroker
+
+HTTPHandler --> HttpUseCase
+HTTPHandler --> HttpJwtService
+Consumer --> EventUseCase
+Consumer --> EventMessageBroker
+
+HttpUseCase --> UseCase
+EventUseCase --> UseCase
+HttpJwtService --> JwtServiceImpl
+EventMessageBroker --> RedisBroker
+
+ArticleRepositoryImpl ..> ArticleRepository
+ProblemRepositoryImpl ..> ProblemRepository
+UserRepositoryImpl ..> UserRepository
+SubmissionRepositoryImpl ..> SubmissionRepository
+ContestRepositoryImpl ..> ContestRepository
+
+JwtServiceImpl ..> JwtService
+Hasher ..> PasswordHasher
+RedisBroker ..> MessageBroker
+
+Contest --> User
+Contest --> Problem
+Problem --> TestCase
+Submission --> User
+Submission --> Problem
+
+legend right
+  <back:#FAFAFA>   </back> Уровень домена
+  <back:#E6E6E6>   </back> Варианты использования
+  <back:#D0D0D0>   </back> Транспорт
+  <back:#B8B8B8>   </back> Репозитории
+  <back:#9E9E9E>   </back> Инфраструктура
+endlegend
+
+@enduml
